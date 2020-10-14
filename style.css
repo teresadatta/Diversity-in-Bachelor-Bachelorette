@@ -1,0 +1,71 @@
+.gridlines line {
+  stroke: #ccc;
+}
+
+.axisone text {
+  fill: #807d7d;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: white;
+  stroke-width: 0;
+}
+
+/* https://stackoverflow.com/questions/13373169/align-svg-to-center-of-screen */
+#v1,
+#legend1,
+#v2,
+#v2_blette,
+#v3{
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+p{
+  color:#363636;
+  font-family: Avenir;
+  font-size: 18px;
+}
+
+h1{
+  color: #363636;
+  text-align: center;
+  font-family: Courier;
+}
+
+h2{
+  color: #807d7d;
+  text-align: center;
+  font-family: Courier;
+}
+
+.roses{
+  text-align: center;
+}
+
+.explanation, .analysis, .bottom{
+  background-size: cover;
+  background-position: center;
+  padding: 50px 200px 0px ;
+  text-align: left;
+}
+
+#title {
+    background-color:  rgb(248, 202, 209);
+    background-size: cover;
+    background-position: center;
+    padding: 100px 200px 100px;
+    text-align: center;
+}
+
+
+
+.analysis{
+  padding: 0px 200px 0px ;
+}
+
+.bottom{
+  padding: 0px 200px 50px ;
+}

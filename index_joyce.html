@@ -1,0 +1,311 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Project 1</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+      .gridlines line {
+          stroke: #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      Visualization 1: (replace with actual name of graph later) <br>
+      <svg id="v1" height="400" width="400"></svg>
+      <script>
+        let svg_v1=d3.select("svg#v1");
+      </script>
+    </p>
+    <p>
+      Comparison to U.S. Demographics: <br>
+      <svg id="v2" height="700" width="1300"></svg> <br>
+      <svg id="v2_blette" height="700" width="1300"></svg>
+      <script>
+        // Loading in SVG
+        let svg_v2=d3.select("svg#v2");
+        let svg_v2_blette=d3.select("svg#v2_blette");
+        let width_v2 = svg_v2.attr("width");
+        let height_v2 = svg_v2.attr("height");
+        let padding_v2 = {"top":100, "bottom":50, "right":200, "left":100};
+
+        let chartWidth_v2 = width_v2 - padding_v2.left - padding_v2.right;
+        let chartHeight_v2 = height_v2 - padding_v2.top - padding_v2.bottom;
+
+        let chartSpace_setup = svg_v2.append("g")
+          .attr("transform", "translate("+padding_v2.left+","+padding_v2.top+")");
+        let labels_v2 = svg_v2.append("g").attr("id", "labels_v2");
+        let chartSpace_v2 = svg_v2.append("g")
+          .attr("transform", "translate("+padding_v2.left+","+padding_v2.top+")");
+
+        let chartSpace_setup_blette = svg_v2_blette.append("g")
+          .attr("transform", "translate("+padding_v2.left+","+padding_v2.top+")");
+        let labels_v2_blette = svg_v2_blette.append("g").attr("id", "labels_v2_blette");
+        let chartSpace_v2_blette = svg_v2_blette.append("g")
+          .attr("transform", "translate("+padding_v2.left+","+padding_v2.top+")");
+
+        // Setting Year Boundaries
+        let start_year = 2006;
+        let start_year_blette=2008;
+        let end_year = 2017;
+
+        d3.json("bachelorette.json")
+          .then((data)=>{
+            // Mapping Season to Year
+            data.forEach(d=>{
+              let season = d["SEASON"]
+              if(d["SHOW"] == "Bachelorette"){
+                d["year"] = Number(season) + 2004;
+              } else if(d["SHOW"] == "Bachelor"){
+                if(season==8 | season==9){
+                  d["year"] = 2006;
+                } else if(season==10 | season==11){
+                  d["year"] = 2007;
+                } else{
+                  d["year"] = season + 1996;
+                }
+              };
+            });
+
+            // Filtering due to lacking demographic data of previous years
+            let dataBach = data.filter(d=> d['year']>=start_year && d['year']<=end_year && d["SHOW"]=="Bachelor");
+            let dataBlette = data.filter(d=> d['year']>=start_year_blette && d["year"]<=end_year && d["SHOW"]=="Bachelorette");
+
+            let races = ["African American", "Asian", "Other", "Hispanic", "Two", "White"];
+
+            // Initializing Counters for Total
+            let totals_bach={};
+            let totals_blette={};
+            function init_counters(totals, start){
+              for(i=start; i<=end_year; i++){
+                let temp ={}; races.forEach(d=>{temp[d]=0;});
+                temp["Total"]=0; totals[i] = temp;
+              };
+            };
+            init_counters(totals_bach, start_year);
+            init_counters(totals_blette, start_year_blette);
+
+            // Counting
+            function counting(dataset, totals){
+              dataset.forEach(d=>{
+                let year = d["year"]
+                totals[year]["Total"] +=1;
+                races.forEach(race=>{if (d["Race"]==race){totals[year][race]+=1};});
+              });
+            };
+            counting(dataBach, totals_bach);
+            counting(dataBlette, totals_blette);
+
+            //Proportion Calculations
+            let prop_bach = {}
+            let prop_blette = {}
+            function prop_calc(prop_obj, totals, start){
+              for(i=start; i<=end_year; i++){
+                let tot_num = totals[i]["Total"]; let temp ={};
+                races.forEach(race=>{temp[race]=(totals[i][race]/tot_num);});
+                prop_obj[i] = temp;
+              };
+            };
+            prop_calc(prop_bach, totals_bach, start_year);
+            prop_calc(prop_blette, totals_blette, start_year_blette);
+
+            //Loading in Census Data for Comparison
+            d3.json("census.json")
+              .then((censusData)=>{
+                // Filtering Census Data for Appropriate Years
+                censusData_bach = censusData.filter(d=> d['Year']>=start_year && d['Year']<=end_year);
+                censusData_blette = censusData.filter(d=> d['Year']>=start_year_blette && d['Year']<=end_year);
+
+                // Initializing Proportion Difference Arrays
+                prop_diff_bach=[]
+                prop_diff_blette=[]
+
+                // Calculating Percent Difference in Proportions
+                function prop_diff_calc(prop_diff, census, prop){
+                  census.forEach(d=>{
+                    let year = d["Year"]; let temp ={}; temp["Year"]=year; temp["Other Ethnic"]=0;
+                    races.forEach(race=>{
+                      if(race=="African American"){percent = (prop[year][race]-d["Black"])/d["Black"];}
+                      else{percent = (prop[year][race]-d[race]) / d[race];};
+                      if(percent>1){percent =1;};
+                      if(race=="African American" | race=="White"){temp[race]=percent;}
+                      else{temp["Other Ethnic"] += percent};
+                      if(race!="White"){temp["Non-White"] += percent;};
+                    });
+                    temp["Other Ethnic"] = temp["Other Ethnic"] / 4
+                    prop_diff.push(temp);
+                  });
+                };
+
+                prop_diff_calc(prop_diff_bach, censusData_bach, prop_bach);
+                prop_diff_calc(prop_diff_blette, censusData_blette, prop_blette);
+
+                // Max and Min Percent
+                let max_percent = 1;
+                let min_percent = -1;
+
+                // Creating Scales for X and Y
+                function show_data(prop_diff, title, chartSpace, chartSpace_set, labels){
+                  const xScale_year = d3.scaleLinear()
+                    .domain([start_year-1, end_year+1])
+                    .range([0, chartWidth_v2]);
+                  const yScale_percent = d3.scaleLinear()
+                    .domain([min_percent-0.2, max_percent+0.2])
+                    .range([chartHeight_v2, 0]);
+
+                  // Creating Gridlines
+                  let bottomGridlines = d3.axisBottom(xScale_year)
+                    .tickSize(-chartHeight_v2)
+                    .tickFormat("")
+                  let leftGridlines = d3.axisLeft(yScale_percent)
+                    .tickSize(-chartWidth_v2)
+                    .tickFormat("");
+
+                  labels.append("g")
+                    .attr("class", "gridlines")
+                    .attr("transform", "translate("+padding_v2.left+","+(height_v2-padding_v2.bottom)+")")
+                    .call(bottomGridlines);
+                  labels.append("g")
+                    .attr("class", "gridlines")
+                    .attr("transform","translate("+padding_v2.left+","+padding_v2.top+")")
+                    .call(leftGridlines);
+
+                  // Creating Axis Labels
+                  let bottomAxis = d3.axisBottom(xScale_year)
+                    .tickFormat(d3.format("~f"));
+                  let leftAxis = d3.axisLeft(yScale_percent)
+                    .tickFormat(d3.format(".0%"));
+
+                  labels.append("g")
+                    .attr("transform", "translate("+padding_v2.left+","+(height_v2-padding_v2.bottom)+")")
+                    .call(bottomAxis);
+                  labels.append("g")
+                    .attr("transform","translate("+padding_v2.left+","+padding_v2.top+")")
+                    .call(leftAxis);
+                  labels.append("text")
+                    .attr("x", 550)
+                    .attr("y", 700)
+                    .text("Year")
+                    .attr("font-size", 14)
+                    .attr("font-family", "courier");
+                  labels.append("text")
+                    .attr("x", -470)
+                    .attr("y", 35)
+                    .text("Percent Over / Under Represented")
+                    .attr("font-size", 14)
+                    .attr("font-family", "courier")
+                    .attr("transform", "rotate(-90)");
+                  labels.append("text")
+                    .attr("x", padding_v2.left)
+                    .attr("y", 80)
+                    .text("Over/Under Represented Races in "+title+" Relative to U.S. Census Race Demographics vs. Time")
+                    .attr("font-family", "courier")
+                    .attr("font-size", 16);
+
+                  // Creating Separation of Over vs. Under Representation
+                  chartSpace.append("line")
+                    .attr("x1", xScale_year(start_year-1))
+                    .attr("x2", xScale_year(end_year+1))
+                    .attr("y1", yScale_percent(0))
+                    .attr("y2", yScale_percent(0))
+                    .attr("stroke-width", 2.5)
+                    //.attr("stroke-dasharray","20 10")
+                    .attr("stroke", "black");
+
+                  chartSpace_set.append("text")
+                    .attr("x", xScale_year(start_year-1)+3)
+                    .attr("y", yScale_percent(0)+15)
+                    .text("Bachelor Race Proportion = U.S. Population Race Proportion")
+                    .attr("font-family", "courier")
+                    .attr("font-size", 10);
+
+                  // Creating Line to Represent Law Suit
+                  chartSpace.append("line")
+                    .attr("x1", xScale_year(2012))
+                    .attr("x2", xScale_year(2012))
+                    .attr("y1", yScale_percent(-1.2))
+                    .attr("y2", yScale_percent(1.2))
+                    .attr("stroke-width", 2.5)
+                    .attr("stroke-dasharray","20 10")
+                    .attr("opacity", 0.5)
+                    .attr("stroke", "#8f004f");
+                  labels.append("text")
+                    .attr("x", xScale_year(2012)+110)
+                    .attr("y", 120)
+                    .text("Bachelor Racial Discrimination Lawsuit")
+                    .attr("font-size", 10)
+                    .attr("font-family", "courier")
+                    .attr("fill", "#8f004f");
+
+                  // Creating Line Graph
+                  races = ["African American", "Other Ethnic", "White"];
+                  const colorScale = d3.scaleOrdinal(races, ["#b19cd9", "#5e1d5e", "#B6244F"]);
+
+                  prop_diff.forEach(function(d){
+                    races.forEach(function(race){
+                      let circle = chartSpace.append("circle")
+                        .attr("cx", xScale_year(d["Year"]))
+                        .attr("cy", yScale_percent(d[race]))
+                        .attr("r", 5)
+                        .attr("fill", colorScale(race));
+                    });
+                  });
+
+                  races.forEach(function(race){
+                    var lineGen = d3.line()
+                      .x((d,i)=>xScale_year(d["Year"]))
+                      .y((d,i)=>yScale_percent(d[race]))
+                      .curve(d3.curveMonotoneX);
+                    chartSpace.append("path")
+                      .datum(prop_diff)
+                      .attr("class", "line")
+                      .attr("fill", "none")
+                      .attr("stroke", colorScale(race))
+                      .attr("stroke-width", 3)
+                      .attr("d", lineGen);
+                  });
+
+                  // Creating Key
+                  labels.append("text")
+                    .attr("x", xScale_year(2018)+120)
+                    .attr("y", 110)
+                    .attr("font-size", 14)
+                    .attr("font-family", "courier")
+                    .attr("text-decoration", "underline")
+                    .text("Key");
+                  i=130
+                  races.forEach(function(race){
+                    labels.append("text")
+                      .attr("x", xScale_year(2018)+120)
+                      .attr("y", i)
+                      .attr("font-size", 14)
+                      .attr("font-family", "courier")
+                      .attr("fill", colorScale(race))
+                      .text(race);
+                    i=i+20
+                  });
+                };
+                show_data(prop_diff_bach, "The Bachelor", chartSpace_v2, chartSpace_setup, labels_v2);
+                show_data(prop_diff_blette, "The Bachelorette", chartSpace_v2_blette, chartSpace_setup_blette, labels_v2_blette);
+
+
+
+              }, (error)=>{
+                console.log(error);
+              });
+          }, (error)=>{
+            console.log(error);
+          });
+
+      </script>
+    </p>
+    <p>
+      Visualization 3: (replace with actual name of graph later) <br>
+      <svg id="v3" height="400" width="400"></svg>
+      <script>
+        let svg_v3=d3.select("svg#v3");
+      </script>
+    </p>
+  </body>
+</html>

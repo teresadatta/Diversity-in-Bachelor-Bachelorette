@@ -1,0 +1,305 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title> Project 1</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <style>
+      .gridlines line {
+          stroke: #ccc;
+      }
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: white;
+        stroke-width: 0;
+      }
+
+    </style>
+  </head>
+  <body>
+    <p>
+      Visualization 3: Stacked Bar Chart
+      <svg id="v3" height="800" width="1300">  </svg>
+      <script>
+        d3.json("bachelorette.json")
+          .then((bacheloretteData) => {
+              let svg_v3=d3.select("svg#v3");
+              let width = svg_v3.attr("width");
+              let height = svg_v3.attr("height");
+              let margin = {top: 25, right: 25, bottom: 25, left: 25};
+              let chartWidth = width - margin.left - margin.right;
+              let chartHeight = height - margin.top - margin.bottom;
+
+              let colors = ["#EEC0C6","#6E4555","#F2EFEA","#FFCCE5","#F38F8F","#F08080","#C44446"];
+
+              // Main Plot Region
+              let bachPlot = svg_v3.append("g").attr("transform","translate(0 0)");
+              var dataForVisual = [];
+              let grp = new Array(32).fill(0);
+              let three_one = new Array(32).fill(0);
+              let two_one = new Array(32).fill(0);
+              let one_one = new Array(32).fill(0);
+
+              bacheloretteData.forEach((d,i) => {
+                let temp_obj = {'DATES-1':d['DATES-1'],'DATES-2':d['DATES-2'],'DATES-3':d['DATES-3'],'DATES-4':d['DATES-4'],
+                'DATES-5':d['DATES-5'],'DATES-6':d['DATES-6'],'DATES-7':d['DATES-7'],'DATES-8':d['DATES-8'],'DATES-9':d['DATES-9'],
+                'DATES-10':d['DATES-10']}
+                if (d['SHOW'] == "Bachelorette" && d['SEASON'] >= 6) {
+                  for (const property in temp_obj) {
+                    if (temp_obj[property] != "") {
+                      let date_num = Number(temp_obj[property].slice(1,temp_obj[property].length));
+                         if (d['Minority Yes/No'] == "Yes") {
+                           if (date_num == 1) one_one[d['SEASON']-6] += 1;
+                           else if (date_num == 2) two_one[d['SEASON']-6] += 1;
+                           else if (date_num == 3) three_one[d['SEASON']-6] += 1;
+                           else grp[d['SEASON']-6] += 1;
+                         }
+                        else if (d['Minority Yes/No'] == "No"){
+                          if (date_num == 1) one_one[8+d['SEASON']-6] += 1;
+                          else if (date_num == 2) two_one[8+d['SEASON']-6] += 1;
+                          else if (date_num == 3) three_one[8+d['SEASON']-6] += 1;
+                          else grp[8+d['SEASON']-6] += 1;
+                        }
+                    }
+                  }
+                }
+                else if (d['SHOW'] == "Bachelor" && d['SEASON'] >= 14) {
+                  for (const property in temp_obj) {
+                    if (temp_obj[property] != "") {
+                      let date_num = Number(temp_obj[property].slice(1,temp_obj[property].length));
+                         if (d['Minority Yes/No'] == "Yes") {
+                           if (date_num == 1) one_one[16+d['SEASON']-14] += 1;
+                           else if (date_num == 2) two_one[16+d['SEASON']-14] += 1;
+                           else if (date_num == 3) three_one[16+d['SEASON']-14] += 1;
+                           else grp[16+d['SEASON']-14] += 1;
+                         }
+                        else if (d['Minority Yes/No'] == "No"){
+                          if (date_num == 1) one_one[24+d['SEASON']-14] += 1;
+                          else if (date_num == 2) two_one[24+d['SEASON']-14] += 1;
+                          else if (date_num == 3) three_one[24+d['SEASON']-14] += 1;
+                          else grp[24+d['SEASON']-14] += 1;
+                        }
+                    }
+                  }
+                }
+              });
+              for (let i = 0; i<=7; i++) {
+                dataForVisual.push({'YEAR':String(2010+i),'GROUP':grp[i],'THREE_ONE':three_one[i],'TWO_ONE':two_one[i],'ONE_ONE':one_one[i],'TOTAL_DATES':(grp[i]+two_one[i]+one_one[i])});
+                dataForVisual.push({'YEAR':String(2010+i),'GROUP':grp[i+8],'THREE_ONE':three_one[i+8],'TWO_ONE':two_one[i+8],'ONE_ONE':one_one[i+8],'TOTAL_DATES':(grp[i+8]+two_one[i+8]+one_one[i+8])});
+              };
+              for (let i = 0; i<=7; i++) {
+                dataForVisual.push({'YEAR':String(2010+i),'GROUP':grp[i+16],'THREE_ONE':three_one[i+16],'TWO_ONE':two_one[i+16],'ONE_ONE':one_one[i+16],'TOTAL_DATES':(grp[i+16]+two_one[i+16]+one_one[i+16])});
+                dataForVisual.push({'YEAR':String(2010+i),'GROUP':grp[i+24],'THREE_ONE':three_one[i+24],'TWO_ONE':two_one[i+24],'ONE_ONE':one_one[i+24],'TOTAL_DATES':(grp[i+24]+two_one[i+24]+one_one[i+24])});
+              };
+
+
+              // Data scales
+              console.log(dataForVisual);
+              let DateExtentBachelorette = d3.extent(dataForVisual.slice(0,16), d => d['TOTAL_DATES']);
+              let DateExtentBachelor = d3.extent(dataForVisual.slice(16,32), d => d['TOTAL_DATES']);
+              let Seasons = ["2010","2011","2012","2013","2014","2015","2016","2017"].reverse()
+              //xScale1 -> scale for Bachelorette date numbers
+              var xScale1 = d3.scaleLinear().domain(DateExtentBachelorette).range([0,chartWidth/2 - 50]);
+              //xScale2 -> scale for Bachelor date numbers
+              var xScale2 = d3.scaleLinear().domain(DateExtentBachelor).range([0,chartWidth/2 - 50]);
+              var xScale2flip = d3.scaleLinear().domain(DateExtentBachelor).range([chartWidth/2 - 25,0]);
+              yRange = [];
+              for (let ind = 0; ind <= (chartHeight-80); ind = ind + (chartHeight-360)/7) {
+                yRange.push(ind)
+              };
+              console.log(yRange);
+              var yScale = d3.scaleOrdinal().domain(Seasons).range(yRange);
+
+              let bottomAx1 = d3.axisBottom(xScale1);
+              let bottomAx2 = d3.axisBottom(xScale2flip).ticks(14);
+              var leftAx = d3.axisLeft(yScale).ticks(8).tickSize(0);
+
+              svg_v3.append("g")
+                 .attr("transform","translate(680,85)")
+                 .attr("class", "axis")
+                 .style("font", "20px times")
+                 .style("font-family","Courier")
+                 .call(leftAx);
+              svg_v3.append("g")
+                 .attr("transform","translate(700,500)")
+                 .attr("class", "gridlines")
+                 .style("font", "12px times")
+                 .style("font-family","Courier")
+                 .call(bottomAx1);
+              svg_v3.append("g")
+                 .attr("transform","translate(0,500)")
+                 .attr("class", "gridlines")
+                 .style("font", "12px times")
+                 .style("font-family","Courier")
+                 .call(bottomAx2);
+              svg_v3.append("text")
+                 .attr("transform", "translate(1400,550)")
+                 .attr("y", 0 - margin.left)
+                 .attr("x", 0 - (chartHeight / 2))
+                 .attr("dy", "1em")
+                 .style("text-anchor", "middle")
+                 .style("font", "16px times")
+                 .style("font-family","Courier")
+                 .text("Dates Received");
+             svg_v3.append("text")
+                .attr("transform", "translate(715, 550)")
+                .attr("y", 0 - margin.right)
+                .attr("x", 0 - (chartHeight / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .style("font", "16px times")
+                .style("font-family","Courier")
+                .text("Dates Received");
+            svg_v3.append("text")
+               .attr("transform", "translate(705,40)")
+               .attr("y", 0 - margin.left)
+               .attr("x", 0 - (chartHeight / 2))
+               .attr("dy", "1em")
+               .style("text-anchor", "middle")
+               .style("font", "30px times")
+               .style("font-family","Courier")
+               .text("The Bachelor");
+           svg_v3.append("text")
+              .attr("transform", "translate(1300,40)")
+              .attr("y", 0 - margin.right)
+              .attr("x", 0 - (chartHeight / 2))
+              .attr("dy", "1em")
+              .style("text-anchor", "middle")
+              .style("font", "30px times")
+              .style("font-family","Courier")
+              .text("The Bachelorette");
+
+              let spacing = 0;
+              dataForVisual.slice(0,16).reverse().forEach((d,i) => {
+                if (i == 0) {
+                  spacing = 0;
+                  txt = "Other";
+                }
+                else if (i%2 == 1) {
+                  spacing += 25; txt = "Minority";
+                }
+                else {
+                  spacing += 30; txt = "Other";
+                }
+                if (d['TOTAL_DATES'] == 0) txt = "";
+                groupRect = bachPlot.append("rect")
+                         .attr("x", 700)
+                         .attr("y", 65+spacing)
+                         .attr("height", 20)
+                         .attr("width",xScale1(d['GROUP']))
+                         .attr("opacity",1.0)
+                         .attr("fill", colors[0]);
+                threeRect = bachPlot.append("rect")
+                         .attr("x", 700+xScale1(d['GROUP']))
+                         .attr("y", 65+spacing)
+                         .attr("height", 20)
+                         .attr("width",xScale1(d['THREE_ONE']))
+                         .attr("opacity",1.0)
+                         .attr("fill", colors[1]);
+               twoRect = bachPlot.append("rect")
+                        .attr("x", 700+xScale1(d['GROUP'])+xScale1(d['THREE_ONE']))
+                        .attr("y", 65+spacing)
+                        .attr("height", 20)
+                        .attr("width",xScale1(d['TWO_ONE']))
+                        .attr("opacity",1.0)
+                        .attr("fill", colors[2]);
+              oneRect = bachPlot.append("rect")
+                        .attr("x", 700+xScale1(d['GROUP'])+xScale1(d['THREE_ONE'])+xScale1(d['TWO_ONE']))
+                        .attr("y", 65+spacing)
+                        .attr("height", 20)
+                        .attr("width",xScale1(d['ONE_ONE']))
+                        .attr("opacity",1.0)
+                        .attr("fill", colors[3]);
+              minority = bachPlot.append("text")
+                           .attr("y", 65+spacing)
+                           .attr("x", 703)
+                           .attr("dy", "1em")
+                           .style("text-anchor", "start")
+                           .style("font", "11px times")
+                           .style("font-family","Courier")
+                           .style("fill","black")
+                           .text(txt);
+            });
+            dataForVisual.slice(16,32).reverse().forEach((d,i) => {
+              if (i == 0) {
+                spacing = 0;
+                txt = "Other";
+              }
+              else if (i%2 == 1) {
+                spacing += 25;
+                txt = "Minority";
+              }
+
+              else {
+                spacing += 30;
+                txt = "Other";
+              }
+              if (d['TOTAL_DATES'] == 0) txt = "";
+              groupRect = bachPlot.append("rect")
+                       .attr("x", 600-xScale2(d['GROUP']))
+                       .attr("y", 65+spacing)
+                       .attr("height", 20)
+                       .attr("width",xScale2(d['GROUP']))
+                       .attr("opacity",1.0)
+                       .attr("fill", colors[0]);
+             threeRect = bachPlot.append("rect")
+                      .attr("x", 600-xScale2(d['GROUP'])-xScale2(d['THREE_ONE']))
+                      .attr("y", 65+spacing)
+                      .attr("height", 20)
+                      .attr("width",xScale2(d['THREE_ONE']))
+                      .attr("opacity",1.0)
+                      .attr("fill", colors[1]);
+            twoRect = bachPlot.append("rect")
+                     .attr("x", 600-xScale2(d['GROUP'])-xScale2(d['THREE_ONE'])-xScale2(d['TWO_ONE']))
+                     .attr("y", 65+spacing)
+                     .attr("height", 20)
+                     .attr("width",xScale2(d['TWO_ONE']))
+                     .attr("opacity",1.0)
+                     .attr("fill", colors[2]);
+           oneRect = bachPlot.append("rect")
+                    .attr("x", 600-xScale2(d['GROUP'])-xScale2(d['THREE_ONE'])-xScale2(d['TWO_ONE'])-xScale2(d['ONE_ONE']))
+                    .attr("y", 65+spacing)
+                    .attr("height", 20)
+                    .attr("width",xScale2(d['ONE_ONE']))
+                    .attr("opacity",1.0)
+                    .attr("fill", colors[3]);
+             other= bachPlot.append("text")
+                       .attr("y", 65+spacing)
+                       .attr("x", 597)
+                       .attr("dy", "1em")
+                       .style("text-anchor", "end")
+                       .style("font", "11px times")
+                       .style("font-family","Courier")
+                       .style("fill","black")
+                       .text(txt);
+          });
+
+          // Create Legend
+          let legStrings = ["Group Dates","3-On-1 Dates", "2-On-1 Dates", "1-On-1 Dates"];
+          for (circ = 0; circ < 4; circ ++) {
+            legCirc = bachPlot.append("circle")
+                     .attr("cx", 410 + circ*180)
+                     .attr("cy", 600)
+                     .attr("r", 10)
+                     .attr("opacity",1.0)
+                     .attr("fill", colors[circ]);
+            textCirc = bachPlot.append("text")
+                    .attr("transform", "translate(470,-60)")
+                    .attr("y", 650)
+                    .attr("x", circ*190)
+                    .attr("dy", "1em")
+                    .style("text-anchor", "middle")
+                    .style("font", "14px times")
+                    .style("font-family","Courier")
+                    .text(legStrings[circ]);
+          }
+        }, (err) => {
+              console.log(err);
+        }
+      );
+
+      </script>
+    </p>
+  </body>
+</html>

@@ -1,0 +1,825 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Project 1</title>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+  <p>
+    <div id="title">
+      <h1 class="headings">
+        Minority Representation in <i>The Bachelor</i> and <i>The Bachelorette</i>
+      </h1>
+      <p>
+        <i>The Bachelor</i> and <i>The Bachelorette</i> are American relationship reality TV shows. A lead contestant begins with a group of
+        potential spouses, and each week, he or she goes on dates and decides who he or she wants to keep dating, and who he or she wants to eliminate.
+        In the final week, the show typically ends in a proposal. We wanted to explore racial
+        diversity in the makeup of the contestants and how this has evolved over time.
+      </p>
+    </div>
+
+    <div class="explanation">
+      <h2>
+        Proportion of Contestants who are of Minority Background
+      </h2>
+      <p class="roses">
+        &#127801; &nbsp; &nbsp; &nbsp; &#127801; &nbsp; &nbsp; &nbsp; &#127801;
+      </p>
+      <p><b>Description:</b> Through a saturated heat map, we can visualize when minority candidates typically get eliminated. The
+        saturation
+        represents the proportion of minority contestants to total contestants remaining each week. The seasons are ordered by recency, with
+        the most recent season being on top, and the oldest season on the bottom.
+        Note: Season 10
+        ended after week 8, resulting in no heat map squares for weeks 9 and 10.
+      </p>
+    </div>
+
+    <svg id="v1" height="800" width="600"></svg><br>
+    <svg id="legend1" height="75" width="600"></svg>
+
+    <div class="analysis">
+      <p>
+        <b>Analysis:</b>
+        This visualization shows that Week 5 for <i>The Bachelorette</i> and Week 7 for <i>The Bachelor</i> have been popular
+        "cutoff" weeks for minority candidates. Viewers of the show have theorized about this token minority theory-
+        the lead keeps minority contestants until a certain time frame of Week 5-7, and these decisions are likely
+        dictated by producers. <br><br>
+
+        It is interesting to note that preceding <i>The Bachelor</i> Season 17, a class action racial discrimination lawsuit
+        was filed against <i>The Bachelor</i> for under-representing minorities, and the heat map is noticeably darker above
+        this point. Furthermore, the lead for <i>The Bachelorette</i> Season 13 was African American, which likely explains
+        the darker heat map for that specific season.
+      </p>
+    </div>
+    <script>
+      let svg_v1 = d3.select("svg#v1");
+      var margin_1 = { top: 20, right: 20, bottom: 50, left: 150 };
+
+      var h_1 = 800 - margin_1.top - margin_1.bottom;
+      var sq_height = (h_1 / 25);
+      var w_1 = sq_height * 10;
+
+      var map_area = svg_v1.append("g")
+        .attr("transform", "translate(" + margin_1.left +
+          "," + margin_1.top + ")");
+
+      //load data
+      d3.json("../teresa.json")
+        .then((data) => {
+          var m = "Bachelor ";
+          var f = "Bachelorette "
+          var order_list = [m + "7", m + "8", m + "9", m + "10", m + "11", m + "12", f + "4",
+          m + "13", f + "5", m + "14", f + "6", m + "15", f + "7", m + "16", f + "8", m + "17", f + "9", m + "18", f + "10", m + "19",
+          f + "11", m + "20", f + "12", m + "21", f + "13"];
+
+          //scales
+          let orderScale = d3.scaleLinear()
+            .domain([1, 25])
+            .range([h_1, 0]);
+
+          let weekScale = d3.scaleLinear()
+            .domain([1, 10])
+            .range([0, w_1]);
+
+          //https://www.d3-graph-gallery.com/graph/heatmap_style.html
+          //https://stackoverflow.com/questions/38414926/looking-for-a-better-way-to-alter-the-color-of-axis-components-in-d3-js-v4
+          //http://bl.ocks.org/tjdecke/5558084
+          let y_ax = d3.scaleBand()
+            .domain(order_list)
+            .range([h_1 + sq_height, 0]);
+
+          //axis
+          svg_v1.append("g")
+            .attr("class", "axisone")
+            .style("font-size", 14)
+            .style("font-family", "courier")
+            .call(d3.axisLeft(y_ax).tickSize(0))
+            .attr("transform", "translate(" + margin_1.left + ", " + margin_1.top + ")")
+            .select(".domain").remove();
+
+          svg_v1.append("g")
+            .attr("class", "axisone")
+            .style("font-size", 14)
+            .style("font-family", "courier")
+            .call(d3.axisBottom(weekScale).tickSize(0))
+            .attr("transform", "translate(" + (margin_1.left + 12) + "," + (h_1 + margin_1.top + 32) + ")")
+            .select(".domain").remove();
+
+          svg_v1.append("text")
+            .attr("x", ((margin_1.left - 40)))
+            .attr("y", (h_1 + 65))
+            .style("font-size", "14px")
+            .style("font-family", "courier")
+            .style("fill", "#807d7d")
+            .text("Week");
+
+          //colors
+          var c = ["#fadce0", "#EEC0C6", "#ed9fbc", "#e0729c", "#d15482", "#B6244F"];
+
+          function get_color(x) {
+            if (x == 0 || x == 2) { return "#f5f3f0"; }
+            if (x == 1) { return "white"; }
+            if (x < 0.05) { return c[0]; }
+            if (x < 0.1) { return c[1]; }
+            if (x < 0.2) { return c[2]; }
+            if (x < 0.3) { return c[3]; }
+            if (x < 0.4) { return c[4]; }
+            if (x < 0.6) { return c[5]; }
+            else { return "#8f004f"; };
+          }
+
+          function week_getter(x) {
+            return (Number(x.replace("w_", "")));
+          }
+
+          //add squares via join
+          let squares = map_area.selectAll("rect")
+            .data(data)
+            .join("rect")
+            .attr("x", d => weekScale(week_getter(d['Week'])))
+            .attr("y", d => orderScale(d['Order']))
+            .attr("rx", 4)
+            .attr("ry", 4)
+            .attr("width", sq_height)
+            .attr("height", sq_height)
+            .style("stroke", "none")
+            .style("fill", d => get_color(d['Ratio']));
+
+
+          //make legend for colors
+          let legend_1 = d3.select("svg#legend1");
+          legend_margins = { top: 20, left: 15, bottom: 40 };
+          var l_h = 20;
+          var l_w = 400;
+          var c_full = ["#f5f3f0", "#fadce0", "#EEC0C6", "#ed9fbc", "#e0729c", "#d15482", "#B6244F", "#8f004f"];
+          var bounds = ["0", "<.05", "<.1", "<.2", "<.3", "<.4", "<.6", "<1"];
+
+          var legend_area = legend_1.append("g")
+            .attr("transform", "translate(72 , 20)");
+          rec_w = l_w / 8;
+
+          c_full.forEach((d, i) => {
+            legend_area.append("rect")
+              .attr("x", ((i) * rec_w))
+              .attr("y", 0)
+              .attr("width", rec_w)
+              .attr("height", l_h)
+              .attr("fill", d);
+          });
+
+          bounds.forEach((d, i) => {
+            legend_area.append("text")
+              .attr("x", (rec_w / 2) + ((i) * rec_w))
+              .attr("y", 32)
+              .style("font-size", "14px")
+              .attr("text-anchor", "middle")
+              .style("font-family", "courier")
+              .style("fill", "#807d7d")
+              .text(d);
+          })
+
+          legend_1.append("text")
+            .attr("x", 80)
+            .attr("y", 10)
+            .text("Key: Proportion of Minority Candidates")
+            .attr("font-size", 14)
+            .attr("font-family", "courier")
+            .style("fill", "#807d7d");
+        });
+
+
+    </script>
+    <div class="explanation">
+
+      <h2>
+        Comparing Bachelor Demographics to U.S. Demographics
+      </h2>
+      <p class="roses">
+        &#127801; &nbsp; &nbsp; &nbsp; &#127801; &nbsp; &nbsp; &nbsp; &#127801;
+      </p>
+      <p>
+        <b>Description:</b> By calculating the pecent difference between certain race proportions in <i>The Bachelor</i> franchise and
+        those race proportions in the overall U.S. population, we are able to see if <i>The Bachelor</i>’s cast is accurately reflecting
+        racial demographics in the U.S. over time. A 0% difference indicates that a race is being appropriately represented, while
+        a negative % difference indicates under-representation, and a positive % difference indicates over-representation.
+      </p>
+    </div>
+    <br>
+    <svg id="v2" height="650" width="1300"></svg> <br>
+    <svg id="v2_blette" height="650" width="1300"></svg>
+    <div class="analysis">
+      <p>
+        <b>Analysis:</b> Overall, for both <i>The Bachelor</i> and <i>The Bachelorette</i>, it is evident that the Caucasian race is over-represented
+        in comparison to the overall U.S. population demographics. On the other hand, African Americans and
+        other ethnic groups are severely under-represented in the franchise. Over time, it is evident that minority and ethnic representation on the shows has improved.<br><br>As mentioned before, in 2012 (the 17th season), The Bachelor franchise faced a a class action racial discrimination lawsuit.
+        While this lawsuit was dismissed, it is evident that it had an impact on the franchise, with minority
+        representation increasing dramatically especially for <i>The Bachelor</i>.
+        Additionally, in 2017, Rachel Lindsay became the first black lead on <i>The Bachelorette</i>. This explains the large over-representation of African American men in 2017.
+
+      </p>
+    </div>
+    <script>
+      // Loading in SVG
+      let svg_v2 = d3.select("svg#v2");
+      let svg_v2_blette = d3.select("svg#v2_blette");
+      let width_v2 = svg_v2.attr("width");
+      let height_v2 = svg_v2.attr("height");
+      let padding_v2 = { "top": 50, "bottom": 75, "right": 160, "left": 100 };
+
+      let chartWidth_v2 = width_v2 - padding_v2.left - padding_v2.right;
+      let chartHeight_v2 = height_v2 - padding_v2.top - padding_v2.bottom;
+
+      let chartSpace_setup = svg_v2.append("g")
+        .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")");
+      let labels_v2 = svg_v2.append("g").attr("id", "labels_v2");
+      let chartSpace_v2 = svg_v2.append("g")
+        .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")");
+
+      let chartSpace_setup_blette = svg_v2_blette.append("g")
+        .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")");
+      let labels_v2_blette = svg_v2_blette.append("g").attr("id", "labels_v2_blette");
+      let chartSpace_v2_blette = svg_v2_blette.append("g")
+        .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")");
+
+      // Setting Year Boundaries
+      let start_year = 2006;
+      let start_year_blette = 2008;
+      let end_year = 2017;
+
+      d3.json("bachelorette.json")
+        .then((data) => {
+          // Mapping Season to Year
+          data.forEach(d => {
+            let season = d["SEASON"]
+            if (d["SHOW"] == "Bachelorette") {
+              d["year"] = Number(season) + 2004;
+            } else if (d["SHOW"] == "Bachelor") {
+              if (season == 8 | season == 9) {
+                d["year"] = 2006;
+              } else if (season == 10 | season == 11) {
+                d["year"] = 2007;
+              } else {
+                d["year"] = season + 1996;
+              }
+            };
+          });
+
+          // Filtering due to lacking demographic data of previous years
+          let dataBach = data.filter(d => d['year'] >= start_year && d['year'] <= end_year && d["SHOW"] == "Bachelor");
+          let dataBlette = data.filter(d => d['year'] >= start_year_blette && d["year"] <= end_year && d["SHOW"] == "Bachelorette");
+
+          let races = ["African American", "Asian", "Other", "Hispanic", "Two", "White"];
+
+          // Initializing Counters for Total
+          let totals_bach = {};
+          let totals_blette = {};
+          function init_counters(totals, start) {
+            for (i = start; i <= end_year; i++) {
+              let temp = {}; races.forEach(d => { temp[d] = 0; });
+              temp["Total"] = 0; totals[i] = temp;
+            };
+          };
+          init_counters(totals_bach, start_year);
+          init_counters(totals_blette, start_year_blette);
+
+          // Counting
+          function counting(dataset, totals) {
+            dataset.forEach(d => {
+              let year = d["year"]
+              totals[year]["Total"] += 1;
+              races.forEach(race => { if (d["Race"] == race) { totals[year][race] += 1 }; });
+            });
+          };
+          counting(dataBach, totals_bach);
+          counting(dataBlette, totals_blette);
+
+          //Proportion Calculations
+          let prop_bach = {}
+          let prop_blette = {}
+          function prop_calc(prop_obj, totals, start) {
+            for (i = start; i <= end_year; i++) {
+              let tot_num = totals[i]["Total"]; let temp = {};
+              races.forEach(race => { temp[race] = (totals[i][race] / tot_num); });
+              prop_obj[i] = temp;
+            };
+          };
+          prop_calc(prop_bach, totals_bach, start_year);
+          prop_calc(prop_blette, totals_blette, start_year_blette);
+
+          //Loading in Census Data for Comparison
+          d3.json("census.json")
+            .then((censusData) => {
+              // Filtering Census Data for Appropriate Years
+              censusData_bach = censusData.filter(d => d['Year'] >= start_year && d['Year'] <= end_year);
+              censusData_blette = censusData.filter(d => d['Year'] >= start_year_blette && d['Year'] <= end_year);
+
+              // Initializing Proportion Difference Arrays
+              prop_diff_bach = []
+              prop_diff_blette = []
+
+              // Calculating Percent Difference in Proportions
+              function prop_diff_calc(prop_diff, census, prop) {
+                census.forEach(d => {
+                  let year = d["Year"]; let temp = {}; temp["Year"] = year; temp["Other Ethnic"] = 0;
+                  races.forEach(race => {
+                    if (race == "African American") { percent = (prop[year][race] - d["Black"]) / d["Black"]; }
+                    else { percent = (prop[year][race] - d[race]) / d[race]; };
+                    if (percent > 1) { percent = 1; };
+                    if (race == "African American" | race == "White") { temp[race] = percent; }
+                    else { temp["Other Ethnic"] += percent };
+                    if (race != "White") { temp["Non-White"] += percent; };
+                  });
+                  temp["Other Ethnic"] = temp["Other Ethnic"] / 4
+                  prop_diff.push(temp);
+                });
+              };
+
+              prop_diff_calc(prop_diff_bach, censusData_bach, prop_bach);
+              prop_diff_calc(prop_diff_blette, censusData_blette, prop_blette);
+
+              // Max and Min Percent
+              let max_percent = 1;
+              let min_percent = -1;
+
+              // Creating Scales for X and Y
+              function show_data(prop_diff, title, chartSpace, chartSpace_set, labels) {
+                const xScale_year = d3.scaleLinear()
+                  .domain([start_year - 1, end_year + 1])
+                  .range([0, chartWidth_v2]);
+                const yScale_percent = d3.scaleLinear()
+                  .domain([min_percent - 0.2, max_percent + 0.2])
+                  .range([chartHeight_v2, 0]);
+
+                // Creating Gridlines
+                let bottomGridlines = d3.axisBottom(xScale_year)
+                  .tickSize(-chartHeight_v2)
+                  .tickFormat("")
+                let leftGridlines = d3.axisLeft(yScale_percent)
+                  .tickSize(-chartWidth_v2)
+                  .tickFormat("");
+
+                labels.append("g")
+                  .attr("class", "gridlines")
+                  .attr("transform", "translate(" + padding_v2.left + "," + (height_v2 - padding_v2.bottom) + ")")
+                  .call(bottomGridlines);
+                labels.append("g")
+                  .attr("class", "gridlines")
+                  .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")")
+                  .call(leftGridlines);
+
+                // Creating Axis Labels
+                let bottomAxis = d3.axisBottom(xScale_year)
+                  .tickFormat(d3.format("~f"));
+                let leftAxis = d3.axisLeft(yScale_percent)
+                  .tickFormat(d3.format(".0%"));
+
+                labels.append("g")
+                  .attr("transform", "translate(" + padding_v2.left + "," + (height_v2 - padding_v2.bottom) + ")")
+                  .style("font", "12px times")
+                  .style("font-family", "Courier")
+                  .call(bottomAxis);
+                labels.append("g")
+                  .attr("transform", "translate(" + padding_v2.left + "," + padding_v2.top + ")")
+                  .style("font", "12px times")
+                  .style("font-family", "Courier")
+                  .call(leftAxis);
+                labels.append("text")
+                  .attr("x", 600)
+                  .attr("y", 620)
+                  .text("Year")
+                  .attr("font-size", 14)
+                  .attr("font-family", "courier");
+                labels.append("text")
+                  .attr("x", -470)
+                  .attr("y", 35)
+                  .text("Percent Under / Over Represented")
+                  .attr("font-size", 14)
+                  .attr("font-family", "courier")
+                  .attr("transform", "rotate(-90)");
+                labels.append("text")
+                  .attr("x", padding_v2.left)
+                  .attr("y", padding_v2.top-20)
+                  .text("Over/Under Represented Races in " + title + " Relative to U.S. Census Race Demographics vs. Time")
+                  .attr("font-family", "courier")
+                  .attr("font-size", 16);
+
+                // Creating Separation of Over vs. Under Representation
+                chartSpace.append("line")
+                  .attr("x1", xScale_year(start_year - 1))
+                  .attr("x2", xScale_year(end_year + 1))
+                  .attr("y1", yScale_percent(0))
+                  .attr("y2", yScale_percent(0))
+                  .attr("stroke-width", 2.5)
+                  //.attr("stroke-dasharray","20 10")
+                  .attr("stroke", "black");
+
+                chartSpace_set.append("text")
+                  .attr("x", xScale_year(start_year - 1) + 3)
+                  .attr("y", yScale_percent(0) + 15)
+                  .text("Bachelor Race Proportion = U.S. Population Race Proportion")
+                  .attr("font-family", "courier")
+                  .attr("font-size", 14);
+
+                // Creating Line to Represent Law Suit
+                chartSpace.append("line")
+                  .attr("x1", xScale_year(2012))
+                  .attr("x2", xScale_year(2012))
+                  .attr("y1", yScale_percent(-1.2))
+                  .attr("y2", yScale_percent(1.2))
+                  .attr("stroke-width", 2.5)
+                  .attr("stroke-dasharray", "20 10")
+                  .attr("opacity", 0.7)
+                  .attr("stroke", "#6E4555");
+                labels.append("text")
+                  .attr("x", xScale_year(2012) + 110)
+                  .attr("y", padding_v2.top+20)
+                  .text("Bachelor Racial Discrimination Lawsuit")
+                  .attr("font-size", 14)
+                  .attr("font-family", "courier")
+                  .attr("fill", "#6E4555");
+
+                // Creating Line Graph
+                races = ["African American", "Other Ethnic", "White"];
+                const colorScale = d3.scaleOrdinal(races, ["#b19cd9", "#5e1d5e", "#B6244F"]);
+
+                prop_diff.forEach(function (d) {
+                  races.forEach(function (race) {
+                    let circle = chartSpace.append("circle")
+                      .attr("cx", xScale_year(d["Year"]))
+                      .attr("cy", yScale_percent(d[race]))
+                      .attr("r", 5)
+                      .attr("fill", colorScale(race));
+                  });
+                });
+
+                races.forEach(function (race) {
+                  var lineGen = d3.line()
+                    .x((d, i) => xScale_year(d["Year"]))
+                    .y((d, i) => yScale_percent(d[race]))
+                    .curve(d3.curveMonotoneX);
+                  chartSpace.append("path")
+                    .datum(prop_diff)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", colorScale(race))
+                    .attr("stroke-width", 3)
+                    .attr("d", lineGen);
+                });
+
+                // Creating Key
+                labels.append("text")
+                  .attr("x", xScale_year(2018) + 120)
+                  .attr("y", 110)
+                  .attr("font-size", 14)
+                  .attr("font-family", "courier")
+                  .attr("text-decoration", "underline")
+                  .text("Key");
+                i = 130
+                races.forEach(function (race) {
+                  labels.append("text")
+                    .attr("x", xScale_year(2018) + 120)
+                    .attr("y", i)
+                    .attr("font-size", 14)
+                    .attr("font-family", "courier")
+                    .attr("fill", colorScale(race))
+                    .text(race);
+                  i = i + 20
+                });
+              };
+              show_data(prop_diff_bach, "The Bachelor", chartSpace_v2, chartSpace_setup, labels_v2);
+              show_data(prop_diff_blette, "The Bachelorette", chartSpace_v2_blette, chartSpace_setup_blette, labels_v2_blette);
+
+
+
+            }, (error) => {
+              console.log(error);
+            });
+        }, (error) => {
+          console.log(error);
+        });
+
+    </script>
+
+  <div class="explanation">
+    <h2>
+      Who Gets the Best Dates?
+    </h2>
+    <p class="roses">
+      &#127801; &nbsp; &nbsp; &nbsp; &#127801; &nbsp; &nbsp; &nbsp; &#127801;
+    </p>
+    <p>
+      <b>Description: </b> Dates with fewer contestants are coveted--more alone time with the lead means more time to grow
+      a personal connection and a higher likelihood of staying another week. This bar chart shows the proportion and relative number of dates given out to minority contestants (lower bar)
+      compared to the proportion and relative number of dates given out to other contestants (upper bar), for the years
+      2010-2017.
+    </p>
+  </div>
+  <svg id="v3" height="800" width="1300"> </svg>
+  <div class="bottom">
+    <p>
+      <b>Analysis:</b>  For the 14 seasons represented in the chart, the number of dates given to minority contestants has
+      remained lower than the number of dates given to white contestants. On average, highly sought after dates like
+      one-on-ones are also given out in higher proportions to non-minority contestants.
+    </p>
+  </div>
+    <script>
+      d3.json("bachelorette.json")
+        .then((bacheloretteData) => {
+          // Spacing and Margin Values
+          let svg_v3 = d3.select("svg#v3");
+          let width = svg_v3.attr("width");
+          let height = svg_v3.attr("height");
+          let margin = { top: 25, right: 25, bottom: 25, left: 25 };
+          let chartWidth = width - margin.left - margin.right;
+          let chartHeight = height - margin.top - margin.bottom;
+
+          let colors = ["#EEC0C6","#F2EFEA", "#6E4555", "#C44446"];
+
+          // Main Plot Region
+          let bachPlot = svg_v3.append("g").attr("transform", "translate(0 0)");
+          var dataForVisual = [];
+          let grp = new Array(32).fill(0);
+          let three_one = new Array(32).fill(0);
+          let two_one = new Array(32).fill(0);
+          let one_one = new Array(32).fill(0);
+
+          // Date Post-Processing
+          bacheloretteData.forEach((d, i) => {
+            let temp_obj = {
+              'DATES-1': d['DATES-1'], 'DATES-2': d['DATES-2'], 'DATES-3': d['DATES-3'], 'DATES-4': d['DATES-4'],
+              'DATES-5': d['DATES-5'], 'DATES-6': d['DATES-6'], 'DATES-7': d['DATES-7'], 'DATES-8': d['DATES-8'], 'DATES-9': d['DATES-9'],
+              'DATES-10': d['DATES-10']
+            }
+            if (d['SHOW'] == "Bachelorette" && d['SEASON'] >= 6) {
+              for (const property in temp_obj) {
+                if (temp_obj[property] != "") {
+                  let date_num = Number(temp_obj[property].slice(1, temp_obj[property].length));
+                  if (d['Minority Yes/No'] == "Yes") {
+                    if (date_num == 1) one_one[d['SEASON'] - 6] += 1;
+                    else if (date_num == 2) two_one[d['SEASON'] - 6] += 1;
+                    else if (date_num == 3) three_one[d['SEASON'] - 6] += 1;
+                    else grp[d['SEASON'] - 6] += 1;
+                  }
+                  else if (d['Minority Yes/No'] == "No") {
+                    if (date_num == 1) one_one[8 + d['SEASON'] - 6] += 1;
+                    else if (date_num == 2) two_one[8 + d['SEASON'] - 6] += 1;
+                    else if (date_num == 3) three_one[8 + d['SEASON'] - 6] += 1;
+                    else grp[8 + d['SEASON'] - 6] += 1;
+                  }
+                }
+              }
+            }
+            else if (d['SHOW'] == "Bachelor" && d['SEASON'] >= 14) {
+              for (const property in temp_obj) {
+                if (temp_obj[property] != "") {
+                  let date_num = Number(temp_obj[property].slice(1, temp_obj[property].length));
+                  if (d['Minority Yes/No'] == "Yes") {
+                    if (date_num == 1) one_one[16 + d['SEASON'] - 14] += 1;
+                    else if (date_num == 2) two_one[16 + d['SEASON'] - 14] += 1;
+                    else if (date_num == 3) three_one[16 + d['SEASON'] - 14] += 1;
+                    else grp[16 + d['SEASON'] - 14] += 1;
+                  }
+                  else if (d['Minority Yes/No'] == "No") {
+                    if (date_num == 1) one_one[24 + d['SEASON'] - 14] += 1;
+                    else if (date_num == 2) two_one[24 + d['SEASON'] - 14] += 1;
+                    else if (date_num == 3) three_one[24 + d['SEASON'] - 14] += 1;
+                    else grp[24 + d['SEASON'] - 14] += 1;
+                  }
+                }
+              }
+            }
+          });
+
+          // Creating New Data Array with Only Information Needed for Stacked Bar
+          for (let i = 0; i <= 7; i++) {
+            dataForVisual.push({ 'YEAR': String(2010 + i), 'GROUP': grp[i], 'THREE_ONE': three_one[i], 'TWO_ONE': two_one[i], 'ONE_ONE': one_one[i], 'TOTAL_DATES': (grp[i] + two_one[i] + one_one[i]) });
+            dataForVisual.push({ 'YEAR': String(2010 + i), 'GROUP': grp[i + 8], 'THREE_ONE': three_one[i + 8], 'TWO_ONE': two_one[i + 8], 'ONE_ONE': one_one[i + 8], 'TOTAL_DATES': (grp[i + 8] + two_one[i + 8] + one_one[i + 8]) });
+          };
+          for (let i = 0; i <= 7; i++) {
+            dataForVisual.push({ 'YEAR': String(2010 + i), 'GROUP': grp[i + 16], 'THREE_ONE': three_one[i + 16], 'TWO_ONE': two_one[i + 16], 'ONE_ONE': one_one[i + 16], 'TOTAL_DATES': (grp[i + 16] + two_one[i + 16] + one_one[i + 16]) });
+            dataForVisual.push({ 'YEAR': String(2010 + i), 'GROUP': grp[i + 24], 'THREE_ONE': three_one[i + 24], 'TWO_ONE': two_one[i + 24], 'ONE_ONE': one_one[i + 24], 'TOTAL_DATES': (grp[i + 24] + two_one[i + 24] + one_one[i + 24]) });
+          };
+
+          // Data scales
+          let DateExtentBachelorette = d3.extent(dataForVisual.slice(0, 16), d => d['TOTAL_DATES']);
+          let DateExtentBachelor = d3.extent(dataForVisual.slice(16, 32), d => d['TOTAL_DATES']);
+          let Seasons = ["2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017"].reverse()
+
+          //xScale1 -> scale for Bachelorette date numbers
+          var xScale1 = d3.scaleLinear().domain([DateExtentBachelorette[0],73]).range([0, chartWidth / 2 - 50]);
+          //xScale2 -> scale for Bachelor date numbers
+          var xScale2 = d3.scaleLinear().domain(DateExtentBachelor).range([0, chartWidth / 2 - 50]);
+
+
+          var xScale2flip = d3.scaleLinear().domain(DateExtentBachelor).range([chartWidth / 2 - 25, 0]);
+          yRange = [];
+          for (let ind = 0; ind <= (chartHeight - 80); ind = ind + (chartHeight - 220) / 7) {
+            yRange.push(ind)
+          };
+
+          // String Year Scale
+          var yScale = d3.scaleOrdinal().domain(Seasons).range(yRange);
+
+          let bottomAx1 = d3.axisBottom(xScale1).ticks(14);
+          let bottomAx2 = d3.axisBottom(xScale2flip).ticks(14);
+          var leftAx = d3.axisLeft(yScale).ticks(8).tickSize(0);
+
+          // Axis Formatting and Text Labels
+          svg_v3.append("g")
+            .attr("transform", "translate(680,85)")
+            .attr("class", "axis")
+            .style("font", "20px times")
+            .style("font-family", "Courier")
+            .call(leftAx);
+          svg_v3.append("g")
+            .attr("transform", "translate(700,650)")
+            .attr("class", "gridlines")
+            .style("font", "12px times")
+            .style("font-family", "Courier")
+            .call(bottomAx1);
+          svg_v3.append("g")
+            .attr("transform", "translate(0,650)")
+            .attr("class", "gridlines")
+            .style("font", "12px times")
+            .style("font-family", "Courier")
+            .call(bottomAx2);
+          svg_v3.append("text")
+            .attr("transform", "translate(1140,710)")
+            .attr("y", 0 - margin.left)
+            .attr("x", 0 - (chartHeight / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("font", "16px times")
+            .style("font-family", "Courier")
+            .text("Dates Received");
+          svg_v3.append("text")
+            .attr("transform", "translate(910, 710)")
+            .attr("y", 0 - margin.right)
+            .attr("x", 0 - (chartHeight / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("font", "16px times")
+            .style("font-family", "Courier")
+            .text("Dates Received");
+          svg_v3.append("text")
+            .attr("transform", "translate(870,40)")
+            .attr("y", 0 - margin.left)
+            .attr("x", 0 - (chartHeight / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("font", "30px times")
+            .style("font-family", "Courier")
+            .text("The Bachelor");
+          svg_v3.append("text")
+            .attr("transform", "translate(1215,40)")
+            .attr("y", 0 - margin.right)
+            .attr("x", 0 - (chartHeight / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("font", "30px times")
+            .style("font-family", "Courier")
+            .text("The Bachelorette");
+
+          // Formatting individual bars and data labels for The Bachelorette
+          let spacing = 0;
+          dataForVisual.slice(0, 16).reverse().forEach((d, i) => {
+            if (i == 0) {
+              spacing = 0;
+              txt = "White";
+            }
+            else if (i % 2 == 1) {
+              spacing += 25; txt = "Minority";
+            }
+            else {
+              spacing += 50; txt = "White";
+            }
+            if (d['TOTAL_DATES'] == 0) txt = "";
+            groupRect = bachPlot.append("rect")
+              .attr("x", 700)
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale1(d['GROUP']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[0]);
+            threeRect = bachPlot.append("rect")
+              .attr("x", 700 + xScale1(d['GROUP']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale1(d['THREE_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[1]);
+            twoRect = bachPlot.append("rect")
+              .attr("x", 700 + xScale1(d['GROUP']) + xScale1(d['THREE_ONE']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale1(d['TWO_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[2]);
+            oneRect = bachPlot.append("rect")
+              .attr("x", 700 + xScale1(d['GROUP']) + xScale1(d['THREE_ONE']) + xScale1(d['TWO_ONE']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale1(d['ONE_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[3]);
+            minority = bachPlot.append("text")
+              .attr("y", 65 + spacing)
+              .attr("x", 703)
+              .attr("dy", "1em")
+              .style("text-anchor", "start")
+              .style("font", "11px times")
+              .style("font-family", "Courier")
+              .style("fill", "black")
+              .text(txt);
+          });
+
+          // Formatting individual bars and data labels for The Bachelor
+          dataForVisual.slice(16, 32).reverse().forEach((d, i) => {
+            if (i == 0) {
+              spacing = 0;
+              txt = "White";
+            }
+            else if (i % 2 == 1) {
+              spacing += 25;
+              txt = "Minority";
+            }
+
+            else {
+              spacing += 50;
+              txt = "White";
+            }
+            if (d['TOTAL_DATES'] == 0) txt = "";
+            groupRect = bachPlot.append("rect")
+              .attr("x", 600 - xScale2(d['GROUP']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale2(d['GROUP']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[0]);
+            threeRect = bachPlot.append("rect")
+              .attr("x", 600 - xScale2(d['GROUP']) - xScale2(d['THREE_ONE']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale2(d['THREE_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[1]);
+            twoRect = bachPlot.append("rect")
+              .attr("x", 600 - xScale2(d['GROUP']) - xScale2(d['THREE_ONE']) - xScale2(d['TWO_ONE']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale2(d['TWO_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[2]);
+            oneRect = bachPlot.append("rect")
+              .attr("x", 600 - xScale2(d['GROUP']) - xScale2(d['THREE_ONE']) - xScale2(d['TWO_ONE']) - xScale2(d['ONE_ONE']))
+              .attr("y", 65 + spacing)
+              .attr("height", 20)
+              .attr("width", xScale2(d['ONE_ONE']))
+              .attr("opacity", 1.0)
+              .attr("fill", colors[3]);
+            other = bachPlot.append("text")
+              .attr("y", 65 + spacing)
+              .attr("x", 597)
+              .attr("dy", "1em")
+              .style("text-anchor", "end")
+              .style("font", "11px times")
+              .style("font-family", "Courier")
+              .style("fill", "black")
+              .text(txt);
+          });
+
+          // Create Legend
+          let legStrings = ["Group Dates", "3-On-1 Dates", "2-On-1 Dates", "1-On-1 Dates"];
+          for (circ = 0; circ < 4; circ++) {
+            legCirc = bachPlot.append("circle")
+              .attr("cx", 310 + circ * 180)
+              .attr("cy", 750)
+              .attr("r", 10)
+              .attr("opacity", 1.0)
+              .attr("fill", colors[circ]);
+            textCirc = bachPlot.append("text")
+              .attr("transform", "translate(370,-60)")
+              .attr("y", 800)
+              .attr("x", circ * 190)
+              .attr("dy", "1em")
+              .style("text-anchor", "middle")
+              .style("font", "14px times")
+              .style("font-family", "Courier")
+              .text(legStrings[circ]);
+          }
+        }, (err) => {
+          console.log(err);
+        }
+        );
+
+    </script>
+
+
+</body>
+
+</html>
